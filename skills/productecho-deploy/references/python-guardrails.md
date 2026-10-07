@@ -26,7 +26,7 @@ This guide details packaging rules, production server requirements, and runtime 
 - **Django / Flask / WSGI**: `gunicorn>=21.2.0` (with `uvicorn.workers.UvicornWorker` for async Django)
 
 ### `Procfile` Examples:
-Place a `Procfile` in the project root to define the process startup command:
+Place a `Procfile` in the project root to define the process startup command. If the repository cannot carry one, pass the command as `settings={"start_command": "..."}` to `deploy_application` instead (an explicit value overrides a Procfile).
 
 #### FastAPI:
 ```text

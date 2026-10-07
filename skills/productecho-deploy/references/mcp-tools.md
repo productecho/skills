@@ -8,8 +8,8 @@ This document provides a concise reference for all ProductEcho Model Context Pro
 
 | Tool | Purpose & Value | Primary Arguments |
 | :--- | :--- | :--- |
-| `inspect_application_source` | Inspect source tree and return `recommended_deployment_target` (`container` or `static_cdn`) with build facts. | `application_name`, `s3_key`, `upload_id`, `git_url`, `git_branch`, `root_directory`, `env_vars` |
-| `deploy_application` | Build and deploy using `auto`, `container`, or an inspection-approved `static_cdn` target. Returns a presigned S3 upload URL if source is omitted. | `application_name`, `deployment_target`, `s3_key`, `upload_id`, `git_url`, `container_port`, `env_vars` |
+| `inspect_application_source` | Inspect source tree and return `recommended_deployment_target` (`container` or `static_cdn`) with build facts. For monorepos it also returns every project with `role`, `deployable` and `requires`, plus `requires_project_selection` and `workspace_tool`. It also returns `settings` (start command, build command, output directory, each detected, suggested or missing) and `blocking_settings` that must be confirmed before deploying. | `application_name`, `s3_key`, `upload_id`, `git_url`, `git_branch`, `root_directory`, `env_vars` |
+| `deploy_application` | Build and deploy using `auto`, `container`, or an inspection-approved `static_cdn` target. Returns a presigned S3 upload URL if source is omitted. Refused with the suggested values until `blocking_settings` are provided in `settings`. | `application_name`, `deployment_target`, `s3_key`, `upload_id`, `git_url`, `container_port`, `env_vars`, `settings` |
 | `list_applications` | List active application deployments for authenticated tenant. | `deployment_status` (optional filter) |
 | `get_application_status` | Query live status, deployment logs, and public HTTPS domain endpoint. | `application_name` |
 | `pause_application` | Scale a container to zero or remove a static app's CloudFront KVS route. | `application_name` |
@@ -20,6 +20,7 @@ This document provides a concise reference for all ProductEcho Model Context Pro
 | `get_project_state` | Deprecated alias for `get_project_link` — retained for backward compatibility. | `application_name`, `remote_repo`, `root_directory` |
 | `get_application_env` | Retrieve configured environment variables for a deployed application. | `application_name` |
 | `update_application_env` | Update environment variables and optionally trigger a rolling restart without rebuilding. | `application_name`, `env_vars`, `redeploy` |
+| `update_application_settings` | Change the start command of a buildpack-built container and roll it out without rebuilding; `null` removes the stored value. | `application_name`, `settings`, `redeploy` |
 
 ---
 

@@ -10,7 +10,7 @@ When writing code, configuring project manifests, creating build scripts, or pac
 
 ### 2. Python (FastAPI / Django / Flask) Guardrails
 - **Production Server**: Include a production ASGI/WSGI server (`uvicorn`, `gunicorn`, `granian`) in `requirements.txt`.
-- **`Procfile`**: Provide a root `Procfile` (e.g. `web: uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2`).
+- **`Procfile`**: Provide a root `Procfile` (e.g. `web: uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2`), or pass `settings={"start_command": "..."}` to `deploy_application`.
 - **Unbuffered Logging**: Ensure `PYTHONUNBUFFERED=1` is set.
 - **Port Ingress**: Bind to `0.0.0.0` and read `os.getenv("PORT", "8000")`.
 

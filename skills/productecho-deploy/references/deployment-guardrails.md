@@ -51,6 +51,7 @@ Production builders prune development dependencies to create lightweight, secure
     ```text
     web: uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2
     ```
+  - No Procfile? Pass the command as `settings={"start_command": "..."}` to `deploy_application`; it overrides a Procfile.
 - **Port Ingress & Host Binding**:
   - Always bind to `0.0.0.0` reading `int(os.getenv("PORT", 8000))`.
 - **Unbuffered Logging**:

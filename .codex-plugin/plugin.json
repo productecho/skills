@@ -1,6 +1,6 @@
 {
   "name": "productecho-plugin",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Deploy and manage ProductEcho applications and PostgreSQL resources through OAuth-protected MCP tools.",
   "author": {
     "name": "ProductEcho Team",

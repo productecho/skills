@@ -42,6 +42,7 @@ Before deploying any application, ensure the project follows these standard prod
   ```text
   web: uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2
   ```
+  A Procfile is detected automatically. Without one, pass the confirmed command as `settings={"start_command": "..."}` to `deploy_application` (an explicit value overrides a Procfile); otherwise the deploy is refused and the container would start the interactive Python REPL.
 - **Port Ingress & Logging**: Bind to `0.0.0.0` reading `os.getenv("PORT", "8000")`, with `PYTHONUNBUFFERED=1`.
 
 ### 🐹 3. Golang Services
@@ -100,6 +101,9 @@ Call `inspect_application_source(application_name="my-app")` to receive the pres
 - Use `static_cdn` only when inspection recommends it. A Dockerfile or server runtime must use `container`.
 - Use `container` when inspection is unavailable or uncertain.
 - The dashboard may let the user override a static recommendation to `container`; never override a container recommendation to `static_cdn`.
+- **Monorepos:** `detected_subprojects` lists every project with its `role` (`application`, `library`, `aggregator` or `unknown`), `deployable`, and `requires` (sibling projects it depends on, such as a shared library). Libraries and aggregators (workspace or parent-pom roots) are not deployed on their own. When `requires_project_selection` is `true`, ask the user which deployable project to deploy, then inspect again with that project's `root_directory`. If no project sits at the repository root the top-level facts are intentionally empty, so never deploy from them.
+- If the chosen project lists `requires` outside its own folder, relay the inspection warning: builds limited to a `root_directory` do not include sibling projects yet, so it may fail to resolve a shared library.
+- **Build and run settings:** `settings` lists what the platform inferred for the project, each with a `status` (`detected` from the source, `suggested` by a heuristic, or `missing`), a `value`, and its `source`. `blocking_settings` names the ones that must be confirmed before deploying, for example `start_command` for a Python app with no Procfile (without one the container would start the interactive Python REPL and exit). Show the user the suggested value and its `source`, let them edit it, then pass the confirmed value to `deploy_application(settings={"start_command": "..."})`. Never invent a command: read the code or ask. A deploy that omits a required setting is refused with the suggestion. Static sites report `output_directory` and `build_command` the same way and are overridable through `settings`.
 
 ### Step 3: Upload Source Archive
 HTTP `PUT` the clean `.zip` archive to the presigned `upload_url` with header `Content-Type: application/zip`.
@@ -136,6 +140,7 @@ Call `get_application_status(application_name="my-app")` until status becomes `R
 ### Step 7: Environment Variable Management
 - **Read Current Values**: Call `get_application_env(application_name="my-app")` to retrieve configured environment variables (sensitive values masked).
 - **Update Values**: Call `update_application_env(application_name="my-app", env_vars={...}, redeploy=true)` to set new environment variables. `redeploy=true` (default) dispatches a rolling restart of running pods with the new values, without a full rebuild.
+- **Change the start command**: Call `update_application_settings(application_name="my-app", settings={"start_command": "uvicorn app:app --host 0.0.0.0 --port $PORT"})` to change how a buildpack-built container starts without rebuilding; `null` removes the stored value. Build settings (`build_command`, `output_directory`) need `deploy_application` instead.
 
 ### Step 8: Custom Domains for Static CDN Apps
 Only applies to applications deployed with `deployment_target="static_cdn"`, once they are deployed. The ProductEcho address (`https://<prefix>.cdn.productecho.com`) keeps working.
