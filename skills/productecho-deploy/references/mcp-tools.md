@@ -51,8 +51,8 @@ This document provides a concise reference for all ProductEcho Model Context Pro
 
 | Tool | Purpose & Value | Primary Arguments |
 | :--- | :--- | :--- |
-| `check_domain_availability` | Verify a subdomain prefix or verified custom domain is available before deploying or binding. | `domain_prefix`, `custom_domain`, `application_name`, `deployment_target` |
-| `list_static_custom_domains` | List custom domain bindings for a static CDN application. | `application_name` |
-| `add_static_custom_domain` | Bind a verified tenant custom domain to a static CDN application. | `application_name`, `tenant_domain_id` |
-| `check_static_custom_domain_status` | Check DNS verification and TLS certificate issuance status for a binding. | `application_name`, `binding_id` |
-| `remove_static_custom_domain` | Detach a custom domain binding and release its CDN route. | `application_name`, `binding_id` |
+| `check_domain_availability` | Verify a subdomain prefix is available before deploying. | `domain_prefix`, `custom_domain`, `application_name`, `deployment_target` |
+| `list_custom_domains` | List a static CDN application's custom domains with their DNS records and status. | `application_name` |
+| `add_custom_domain` | Add a custom domain to a deployed static CDN application; returns the two DNS records to publish (an ownership TXT and a routing CNAME) and a `next_action` to relay. | `application_name`, `hostname` |
+| `check_custom_domain` | Look at the domain's DNS and certificate now and move it along; repeat until `domain.status` is `active`. | `application_name`, `domain_id` |
+| `remove_custom_domain` | Remove a custom domain and release its hostname. Safe to repeat. | `application_name`, `domain_id` |

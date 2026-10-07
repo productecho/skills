@@ -138,11 +138,13 @@ Call `get_application_status(application_name="my-app")` until status becomes `R
 - **Update Values**: Call `update_application_env(application_name="my-app", env_vars={...}, redeploy=true)` to set new environment variables. `redeploy=true` (default) dispatches a rolling restart of running pods with the new values, without a full rebuild.
 
 ### Step 8: Custom Domains for Static CDN Apps
-Only applies to applications deployed with `deployment_target="static_cdn"`:
-1. Call `check_domain_availability(custom_domain="app.example.com", deployment_target="static_cdn")` to confirm the hostname isn't already routed elsewhere.
-2. Call `add_static_custom_domain(application_name="my-app", tenant_domain_id=...)` to bind a verified tenant custom domain (from tenant custom domains) and get CNAME verification instructions.
-3. Call `check_static_custom_domain_status(application_name="my-app", binding_id=...)` to poll DNS verification and TLS certificate issuance.
-4. Call `list_static_custom_domains(application_name="my-app")` to list all bindings for the app, or `remove_static_custom_domain(application_name="my-app", binding_id=...)` to detach one.
+Only applies to applications deployed with `deployment_target="static_cdn"`, once they are deployed. The ProductEcho address (`https://<prefix>.cdn.productecho.com`) keeps working.
+1. Call `add_custom_domain(application_name="my-app", hostname="shop.example.com")`. It returns two DNS records for the person to publish at their DNS provider: a TXT record that proves they own the domain, and a CNAME to `edge.productecho.net` that sends visitors to the app. Relay the `next_action` text as it is.
+2. After the person has published the records, call `check_custom_domain(application_name="my-app", domain_id=...)` every minute or so until `domain.status` is `active`. A domain only moves forward when it is checked. HTTPS is set up automatically once both records are found, usually in under 2 minutes.
+3. If `domain.status` is `action_required`, read `domain.issue` and the `next_action` text, fix what it says, then check again.
+4. Call `list_custom_domains(application_name="my-app")` to see an app's domains and the workspace quota, or `remove_custom_domain(application_name="my-app", domain_id=...)` to remove one (safe to repeat).
+
+The older `add_static_custom_domain`, `check_static_custom_domain_status`, `list_static_custom_domains` and `remove_static_custom_domain` tools are deprecated: do not use them.
 
 ---
 
