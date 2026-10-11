@@ -21,7 +21,7 @@ This skill provides step-by-step procedures and production readiness best practi
 - **Smart Source Inspection & Auto-Configuration**: Automatically detect project frameworks, listening ports, and required environment variables before deploying.
 - **Multi-Language Production Runtime Support**: Native support for Node.js, Next.js, Python, Golang, and Java applications.
 - **Clean Packaging Automation**: Automatically packages clean source archives, omitting heavy node modules and sensitive local files.
-- **Real-Time Health Monitoring & Logging**: Track build progress and deployment health with detailed status reporting.
+- **Status Reporting**: Check build and deployment status, including the reason when a build or deploy fails.
 - **On-Demand Service Hibernation**: Pause idle web services with 1 click to eliminate unnecessary compute costs, and resume instantly.
 
 ---
@@ -70,7 +70,7 @@ When creating the application source archive:
 ## 🚀 Step-by-Step Deployment Workflow
 
 ```
-[0. Check / Link State] ──> [1. Check Workspace] ──> [2. Inspect Source] ──> [3. Upload Archive] ──> [4. Deploy & Sync State] ──> [5. Monitor Health]
+[0. Check / Link State] ──> [1. Check Workspace] ──> [2. Inspect Source] ──> [3. Upload Archive] ──> [4. Deploy & Sync State] ──> [5. Monitor Status]
 ```
 
 ### Step 0: State Discovery & Bidirectional Linking
