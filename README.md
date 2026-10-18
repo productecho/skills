@@ -21,6 +21,10 @@ Then run `/reload-plugins`. When your agent first calls a ProductEcho tool, a br
 
 ### Cursor
 
+Install the plugin from Cursor Directory: [cursor.directory/plugins/productecho-plugin](https://cursor.directory/plugins/productecho-plugin).
+
+Or set it up by hand. Install the skills:
+
 ```bash
 npx -y skills add productecho/skills --skill '*' --yes --global --agent cursor
 ```
