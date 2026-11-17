@@ -24,6 +24,7 @@ This skill provides step-by-step procedures and production readiness best practi
 - **Status Reporting**: Check build and deployment status, including the reason when a build or deploy fails.
 - **Logs and Diagnosis**: Read a container app's runtime logs with filters, read a failed build's output, and get a one-call diagnosis of a failing app.
 - **On-Demand Service Hibernation**: Pause idle web services with 1 click to eliminate unnecessary compute costs, and resume instantly.
+- **Private Services**: Keep an internal API or worker off the internet while the workspace's other apps still call it. Switch an app between private and public in seconds, with no rebuild.
 
 ---
 
@@ -126,6 +127,7 @@ Call `deploy_application` with application name, S3 reference, container port, s
 }
 ```
 - If `db_identifier` is provided and the database is not in an active state, it will be automatically created/provisioned.
+- Apps are public by default. Add `"is_private": true` only when the user wants a new container app with no public address, for example an internal API that their other apps call (see Step 9). It cannot be set on a static site, and a later deploy keeps the app's stored visibility: change it with `set_application_visibility`.
 - Persist returned `project_state` to `<target_root>/.productecho/state.json`. Ensure it strictly contains ONLY the 6 canonical keys (`version`, `application_name`, `db_identifier`, `root_directory`, `remote_repo`, `updated_at`). NEVER persist `domain_url` or `status`.
 - `auto` resolves to the inspected recommendation. A static release receives a stable six-character `*.cdn.productecho.com` URL; a container release remains under `*.productecho.com`.
 - Every static redeploy rebuilds source and uploads an immutable release. ProductEcho switches the CloudFront KVS route only after upload, checks `productecho-release.json` through the public URL, rolls back the route on failure, and retains the latest three releases.
@@ -159,6 +161,23 @@ Applies to any deployed application, static or container. The ProductEcho addres
 2. After the person has published the records, call `check_custom_domain(application_name="my-app", domain_id=...)` every minute or so until `domain.status` is `active`. A domain only moves forward when it is checked. HTTPS is set up automatically once both records are found, usually in under 2 minutes.
 3. If `domain.status` is `action_required`, read `domain.issue` and the `next_action` text, fix what it says, then check again.
 4. Call `list_custom_domains(application_name="my-app")` to see an app's domains and the workspace quota, or `remove_custom_domain(application_name="my-app", domain_id=...)` to remove one (safe to repeat).
+
+### Step 9: Private Services
+A private service has no public address: the internet cannot reach it and neither can other workspaces. Only the workspace's other apps can call it. Container apps only; a static site is refused.
+1. **Deploy private:** pass `"is_private": true` to `deploy_application` for a new container app. Leave it out for a public app (the default).
+2. **Call it from another app:** `deploy_application` and `get_application_status` return `internal_url` (for example `http://a1b2c3d4-my-api-svc`). Give that address to the calling app, for example through `update_application_env`. It is plain HTTP on port 80 and resolves only inside the workspace's cluster, so it does not work from a browser or a laptop. A private app keeps a reserved `domain_url` that is not served, so never hand it out as the address.
+3. **Switch:** `set_application_visibility(application_name="my-api", is_private=true)` makes an app private and `is_private=false` makes it public again. It does not rebuild or restart the app, takes a few seconds, and the internal address works either way. Making an app private takes its public URL down at once, so confirm with the user first.
+4. **Refusals:** a static site cannot be private. An app with custom domains cannot be made private until they are removed (`remove_custom_domain`), and `add_custom_domain` is refused on a private app: make it public first. A deploy that asks for a different `is_private` than the stored one is refused: use `set_application_visibility`.
+5. **Check:** `get_application_status` reports `is_private`. A private app that is healthy still shows `READY`: that status does not mean it is reachable from the internet.
+
+### Step 10: Storage Paths (Files That Survive Restarts)
+An app's own disk is wiped at every restart and redeploy, and each replica has its own. A storage path is one folder, for example `/data`, that every replica shares and that keeps its files. Container apps only; a static site is refused.
+1. **Use it for:** user uploads, media and generated files. **Not** for databases (not even SQLite: the folder is network storage and several replicas writing one database file can corrupt it; use PostgreSQL) and not for code.
+2. **Add:** pass `"volume_path": "/data"` to `deploy_application`, or call `set_application_volume(application_name="my-app", path="/data")` on a live app. Either rolls out a release without a rebuild. Omitting `volume_path` on a later deploy keeps the current path.
+3. **Path rule:** absolute; letters, digits and `. _ - /` only; no `.`, `..` or `//`; not `/`; not at or under `/proc /sys /dev /etc /bin /sbin /lib /lib64 /usr /run /var/run /tmp /workspace /layers /cnb`. Files the image already has at that path are hidden, not copied.
+4. **User:** an app with a storage path never runs as root. An image whose `USER` is a non-root number keeps it; any other (root, no `USER`, a named user such as `appuser` or buildpacks' `cnb`) runs as the folder's own number (20000 up). `get_application_status` reports `volume_run_as` and `volume_run_as_reason`. Folders the image made for its own user may become read-only, `chown` on the folder fails, and `sudo`/`gosu`/`su-exec` cannot switch users: tell the user to write to the storage path.
+5. **Move:** `set_application_volume` with a new path keeps the same files at the new path.
+6. **Remove (deletes files):** `remove_application_volume(application_name="my-app", confirm_application_name="my-app")` rolls the app out without the folder, then deletes the folder and every file in it. There are no backups, so confirm with the user first. Deleting the app deletes its storage too.
 
 
 ---
