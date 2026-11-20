@@ -69,12 +69,16 @@ def package_app(source_dir: str, output_zip: str):
 
 ---
 
-## 4. Uploading to Presigned S3 URL
+## 4. Uploading to S3
 
-Once the presigned URL is acquired from `inspect_application_source` or `deploy_application`:
+`inspect_application_source` or `deploy_application` returns an S3 upload form: `upload_url`, `upload_fields`, and `max_size_bytes`, the workspace's zip limit (250 MB unless ProductEcho raised it). Check the zip's size first. If it is larger, do not upload it: tell the user its size and the limit, and that they can raise it through https://www.productecho.com/contact.
+
+Send every `upload_fields` entry as its own form field, then the zip as the last field, named `file`:
 ```bash
-curl -X PUT \
-  -H "Content-Type: application/zip" \
-  --data-binary "@app-source.zip" \
-  "<PRESIGNED_UPLOAD_URL>"
+curl -X POST "<upload_url>" \
+  --form-string "key=<upload_fields.key>" \
+  --form-string "policy=<upload_fields.policy>" \
+  --form-string "<other field>=<value>" \
+  -F "file=@app-source.zip"
 ```
+A `204` response means the upload worked. A `400` containing `EntityTooLarge` means the zip is over the limit.

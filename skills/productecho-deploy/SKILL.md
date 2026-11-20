@@ -98,7 +98,7 @@ When creating the application source archive:
 Call `get_workspace_info` to verify active tenant quotas and existing services (see the `productecho-connect` skill for full details on this tool).
 
 ### Step 2: Source Inspection
-Call `inspect_application_source(application_name="my-app")` to receive the presigned upload URL, detected environment expectations, and `recommended_deployment_target`.
+Call `inspect_application_source(application_name="my-app")` to receive the S3 upload form (`upload_url`, `upload_fields`, `max_size_bytes`), detected environment expectations, and `recommended_deployment_target`.
 
 - Use `static_cdn` only when inspection recommends it. A Dockerfile or server runtime must use `container`.
 - Use `container` when inspection is unavailable or uncertain.
@@ -108,7 +108,7 @@ Call `inspect_application_source(application_name="my-app")` to receive the pres
 - **Build and run settings:** `settings` lists what the platform inferred for the project, each with a `status` (`detected` from the source, `suggested` by a heuristic, or `missing`), a `value`, and its `source`. `blocking_settings` names the ones that must be confirmed before deploying, for example `start_command` for a Python app with no Procfile (without one the container would start the interactive Python REPL and exit). Show the user the suggested value and its `source`, let them edit it, then pass the confirmed value to `deploy_application(settings={"start_command": "..."})`. Never invent a command: read the code or ask. A deploy that omits a required setting is refused with the suggestion. Static sites report `output_directory` and `build_command` the same way and are overridable through `settings`. Maven and Gradle projects report `runtime_version`, the Java major version their build files declare (`java.version`, a toolchain, `sourceCompatibility`); it is applied to the build automatically and never blocks, so only pass `settings={"runtime_version": "21"}` to choose a different JDK. An explicit `BP_JVM_VERSION` in `env_vars` overrides both. A Node.js project with no `start` script in `package.json`, no Procfile and no `server.js`, `app.js`, `main.js` or `index.js` in its root cannot be built (the buildpack finds nothing to run, and `package.json`'s `main` is not read), so it reports a blocking `launchpoint`: the file the app starts from. Inspection never guesses the file (it only shows the example `server.js`), so read the code or ask the user which file that is, then pass `settings={"launchpoint": "bot.js"}`; it reaches the build as `BP_LAUNCHPOINT` and is stored for later deploys. Adding a `start` script to `package.json` works too and needs no setting.
 
 ### Step 3: Upload Source Archive
-HTTP `PUT` the clean `.zip` archive to the presigned `upload_url` with header `Content-Type: application/zip`.
+Check that the zip is no larger than `max_size_bytes` (the workspace's limit: 250 MB unless ProductEcho raised it). If it is larger, do not upload it: tell the user its size and the limit, and that they can raise it through https://www.productecho.com/contact. Otherwise POST it to `upload_url` as `multipart/form-data`: every `upload_fields` entry as its own form field, then the zip as the last field, named `file`. A `204` response means it worked; a `400` containing `EntityTooLarge` means the zip is over the limit.
 
 ### Step 4: Deploy Application & Sync State
 Call `deploy_application` with application name, S3 reference, container port, state linking metadata, and environment variables:

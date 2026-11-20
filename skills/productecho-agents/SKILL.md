@@ -34,8 +34,7 @@ All endpoints require Bearer JWT authentication (`Authorization: Bearer <access_
 | Endpoint | Method | Description | Request / Query | Response Model |
 | :--- | :--- | :--- | :--- | :--- |
 | `/api/v1/agents` | `GET` | List all tenant agent workloads | `?status=<status>` | `list[AgentResourceSummary]` |
-| `/api/v1/agents/presigned-upload-url` | `POST` | Generate presigned S3 PUT URL for source zip upload | `{"agent_name": "..."}` | `AgentSourceUploadResponse` |
-| `/api/v1/agents/upload-zip` | `POST` | Direct multipart zip upload to storage | `agent_name`, `file` (multipart) | `{"s3_key": "...", "status": "uploaded"}` |
+| `/api/v1/agents/presigned-upload-url` | `POST` | Generate an S3 upload form for the source zip, with the workspace's size limit | `{"agent_name": "..."}` | `AgentSourceUploadResponse` |
 | `/api/v1/agents/deploy` | `POST` | Trigger agent build, sidecar wiring, and K8s rollout | `AgentDeployRequest` | `AgentDeploymentState` (HTTP 202) |
 | `/api/v1/agents/{agent_name}/status` | `GET` | Query agent build, container status, and MCP sidecars | Path: `agent_name` | `AgentDeploymentState` |
 | `/api/v1/agents/{agent_name}/invoke` | `POST` | Execute interactive prompt in agent sandbox | `AgentInvokeRequest` | `AgentInvokeResponse` |
@@ -63,37 +62,23 @@ All endpoints require Bearer JWT authentication (`Authorization: Bearer <access_
 
 ### 1. Uploading Agent Source Code
 
-#### Option A: Direct Multipart Upload (Simpler for Small Bundles)
-```bash
-curl -X POST "https://api.productecho.com/api/v1/agents/upload-zip" \
-  -H "Authorization: Bearer $PRODUCT_ECHO_TOKEN" \
-  -F "agent_name=customer-support-agent" \
-  -F "file=@agent_source.zip"
-```
-Response:
-```json
-{
-  "s3_key": "builds/tenant_xyz/customer-support-agent/upl-8f4b2.zip",
-  "upload_id": "upl-8f4b2",
-  "agent_name": "customer-support-agent",
-  "status": "uploaded"
-}
-```
-
-#### Option B: Presigned S3 PUT URL (Recommended for Larger Bundles & Headless CLI)
-1. Request presigned URL:
+1. Request an upload form:
    ```bash
    curl -X POST "https://api.productecho.com/api/v1/agents/presigned-upload-url" \
      -H "Authorization: Bearer $PRODUCT_ECHO_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{"agent_name": "customer-support-agent"}'
    ```
-2. Upload archive directly to S3:
+2. Check that the zip is no larger than `max_size_bytes` from step 1 (250 MB unless ProductEcho raised the workspace's limit; to raise it, contact https://www.productecho.com/contact). Then upload it to S3: every `upload_fields` entry as its own form field, then the zip as the last field, named `file`:
    ```bash
-   curl -X PUT "$UPLOAD_URL" \
-     -H "Content-Type: application/zip" \
-     --data-binary "@agent_source.zip"
+   curl -X POST "$UPLOAD_URL" \
+     --form-string "key=<upload_fields.key>" \
+     --form-string "policy=<upload_fields.policy>" \
+     --form-string "<other field>=<value>" \
+     -F "file=@agent_source.zip"
    ```
+   A `204` response means the upload worked; a `400` containing `EntityTooLarge` means the zip is over the limit.
+3. Pass the `s3_key` from the step 1 response to the deploy call below.
 
 ---
 
